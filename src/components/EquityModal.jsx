@@ -74,6 +74,8 @@ function EquityModal({ visible, record, onCancel, onOk, loading }) {
         extra={
           <Space>
             <Button
+              aria-label="关闭"
+              title="关闭"
               type="text"
               icon={<CloseOutlined />}
               onClick={onCancel}

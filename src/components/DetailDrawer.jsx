@@ -609,7 +609,7 @@ function DetailDrawer({ visible, record, onCancel }) {
       open={visible}
       closable={false}
       styles={{ body: { padding: '24px 32px' } }}
-      extra={<Button type="text" icon={<CloseOutlined />} onClick={onCancel} />}
+      extra={<Button aria-label="关闭" title="关闭" type="text" icon={<CloseOutlined />} onClick={onCancel} />}
     >
       {content}
     </Drawer>

@@ -156,6 +156,8 @@ function PackageModal({ visible, record, mode = 'create', replaceOptions = [], o
       open={visible}
       onCancel={onCancel}
       onOk={handleOk}
+      okText="确认"
+      cancelText="取消"
       confirmLoading={loading}
       width={720}
     >
@@ -310,7 +312,14 @@ function PackageModal({ visible, record, mode = 'create', replaceOptions = [], o
                       </Form.Item>
                     </Col>
                     <Col span={2}>
-                      <MinusCircleOutlined onClick={() => remove(name)} style={{ color: '#999' }} />
+                      <MinusCircleOutlined
+                        aria-label="删除权益说明"
+                        role="button"
+                        tabIndex={0}
+                        title="删除权益说明"
+                        onClick={() => remove(name)}
+                        style={{ color: '#999' }}
+                      />
                     </Col>
                   </Row>
                 ))}
