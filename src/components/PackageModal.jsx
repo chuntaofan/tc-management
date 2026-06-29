@@ -34,7 +34,7 @@ const VALIDITY_OPTIONS = Object.keys(VALIDITY_TYPE_MAP).map((key) => ({
 
 const SKU_SELECT_OPTIONS = SKU_OPTIONS.map((item) => ({
   value: item.skuCode,
-  label: `${item.skuName}（${item.skuCode}）`,
+  label: item.skuName,
 }));
 
 function formatDiscountTag(listPrice, actualPrice) {

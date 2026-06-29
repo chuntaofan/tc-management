@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="840" viewBox="0 0 840 840">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#666"/>
+    </marker>
+  </defs>
+  <rect width="840" height="840" fill="#ffffff"/>
+  <style>
+    .shape { fill: #f6ffed; stroke: #389e0d; stroke-width: 1.5; }
+    .diamond { fill: #fffbe6; stroke: #d48806; stroke-width: 1.5; }
+    .startend { fill: #e6f7ff; stroke: #1890ff; stroke-width: 1.5; }
+    text { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 13px; fill: #262626; text-anchor: middle; dominant-baseline: middle; }
+    .label { font-size: 12px; fill: #595959; }
+  </style>
+
+  <ellipse cx="300" cy="40" rx="50.0" ry="20.0" class="startend"/>
+  <text x="300" y="40">开始</text>
+  <rect x="220.0" y="96.0" width="160" height="48" rx="4" class="shape"/>
+  <text x="300" y="120">进入 计费管理 > 套餐管理</text>
+  <rect x="210.0" y="176.0" width="180" height="48" rx="4" class="shape"/>
+  <text x="300" y="191">生命周期同步</text>
+  <text x="300" y="209">(pending→active，替换旧版)</text>
+  <rect x="220.0" y="256.0" width="160" height="48" rx="4" class="shape"/>
+  <text x="300" y="280">展示列表 / 筛选</text>
+  <polygon points="300,344.0 360.0,380 300,416.0 240.0,380" class="diamond"/>
+  <text x="300" y="380">选择操作</text>
+  <rect x="450.0" y="296.0" width="140" height="48" rx="4" class="shape"/>
+  <text x="520" y="311">新增/编辑/复制</text>
+  <text x="520" y="329">弹窗填写</text>
+  <rect x="460.0" y="380.0" width="120" height="40" rx="4" class="shape"/>
+  <text x="520" y="400">提交表单</text>
+  <polygon points="520,448.0 580.0,480 520,512.0 460.0,480" class="diamond"/>
+  <text x="520" y="480">上架时间?</text>
+  <rect x="640.0" y="460.0" width="120" height="40" rx="4" class="shape"/>
+  <text x="700" y="471">生成待上架</text>
+  <text x="700" y="489">(需替换对象)</text>
+  <rect x="460.0" y="540.0" width="120" height="40" rx="4" class="shape"/>
+  <text x="520" y="560">生成已上架</text>
+  <rect x="60.0" y="296.0" width="120" height="48" rx="4" class="shape"/>
+  <text x="120" y="320">下架/取消上架</text>
+  <rect x="60.0" y="380.0" width="120" height="40" rx="4" class="shape"/>
+  <text x="120" y="400">状态变为已下架</text>
+  <rect x="240.0" y="500.0" width="120" height="40" rx="4" class="shape"/>
+  <text x="300" y="520">确认删除</text>
+  <rect x="240.0" y="580.0" width="120" height="40" rx="4" class="shape"/>
+  <text x="300" y="600">删除记录</text>
+  <rect x="240.0" y="660.0" width="120" height="40" rx="4" class="shape"/>
+  <text x="300" y="680">返回列表</text>
+  <ellipse cx="300" cy="760" rx="50.0" ry="20.0" class="startend"/>
+  <text x="300" y="760">结束</text>
+  <line x1="300.0" y1="60.0" x2="300.0" y2="96.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="300.0" y1="144.0" x2="300.0" y2="176.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="300.0" y1="224.0" x2="300.0" y2="256.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="300.0" y1="304.0" x2="300.0" y2="344.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="341.2" y1="368.8" x2="450.0" y2="339.1" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="395.6" y="345.9" class="label">新增/编辑/复制</text>
+  <line x1="261.4" y1="367.1" x2="180.0" y2="340.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="220.7" y="345.6" class="label">上下架</text>
+  <line x1="300.0" y1="416.0" x2="300.0" y2="500.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="300.0" y="450.0" class="label">删除</text>
+  <line x1="520.0" y1="344.0" x2="520.0" y2="380.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="520.0" y1="420.0" x2="520.0" y2="448.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="580.0" y1="480.0" x2="640.0" y2="480.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="610.0" y="472.0" class="label">未来</text>
+  <line x1="520.0" y1="512.0" x2="520.0" y2="540.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="520.0" y="518.0" class="label">当前/过去</text>
+  <line x1="660.0" y1="500.0" x2="340.0" y2="660.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="483.3" y1="580.0" x2="336.7" y2="660.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="120.0" y1="344.0" x2="120.0" y2="380.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="132.9" y1="420.0" x2="287.1" y2="660.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="300.0" y1="540.0" x2="300.0" y2="580.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="300.0" y1="620.0" x2="300.0" y2="660.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="300.0" y1="700.0" x2="300.0" y2="740.0" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+</svg>

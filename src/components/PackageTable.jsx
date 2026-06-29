@@ -16,7 +16,7 @@ function PackageTable({ data, loading, onEdit, onCopy, onToggle, onDelete }) {
       dataIndex: 'sku',
       key: 'sku',
       width: 160,
-      render: (sku, record) => (record.skuName ? `${record.skuName}（${sku}）` : sku),
+      render: (sku, record) => record.skuName || sku,
     },
     {
       title: '类型',
