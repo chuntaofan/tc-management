@@ -6,6 +6,7 @@ import {
   message,
 } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import PackageTable from './PackageTable';
 import PackageModal from './PackageModal';
 import PackageSearchForm from './PackageSearchForm';
@@ -26,6 +27,7 @@ function PackageManagement() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [modalMode, setModalMode] = useState('create');
   const [filters, setFilters] = useState({});
 
   const fetchData = useCallback(async (params = filters) => {
@@ -58,18 +60,33 @@ function PackageManagement() {
 
   const handleAdd = () => {
     setSelectedRecord(null);
+    setModalMode('create');
     setModalVisible(true);
   };
 
   const handleEdit = (record) => {
     setSelectedRecord(record);
+    setModalMode('edit');
+    setModalVisible(true);
+  };
+
+  const handleCopy = (record) => {
+    setSelectedRecord({
+      ...record,
+      name: `${record.name} 副本`,
+      shelfTime: dayjs().add(1, 'day').toISOString(),
+      status: 'pending',
+      replacesPackageId: record.displayStatus === 'active' ? record.id : '',
+      seriesKey: record.displayStatus === 'active' ? record.seriesKey : '',
+    });
+    setModalMode('copy');
     setModalVisible(true);
   };
 
   const handleToggle = async (record) => {
     try {
       await togglePackageStatus(record.id);
-      message.success(record.status === 'active' ? '已下架' : '已上架');
+      message.success(record.displayStatus === 'pending' ? '已取消上架' : '已下架');
       fetchData();
     } catch (error) {
       message.error(error.message || '操作失败');
@@ -89,19 +106,21 @@ function PackageManagement() {
   const handleModalCancel = () => {
     setModalVisible(false);
     setSelectedRecord(null);
+    setModalMode('create');
   };
 
   const handleModalOk = async (values) => {
     setModalLoading(true);
     try {
-      if (selectedRecord) {
+      if (modalMode === 'edit' && selectedRecord) {
         await updatePackage(selectedRecord.id, values);
       } else {
         await addPackage(values);
       }
-      message.success(selectedRecord ? '编辑成功' : '新增成功');
+      message.success(modalMode === 'edit' ? '编辑成功' : '新增成功');
       setModalVisible(false);
       setSelectedRecord(null);
+      setModalMode('create');
       fetchData();
     } catch (error) {
       message.error(error.message || '提交失败');
@@ -152,6 +171,7 @@ function PackageManagement() {
         data={data}
         loading={loading}
         onEdit={handleEdit}
+        onCopy={handleCopy}
         onToggle={handleToggle}
         onDelete={handleDelete}
       />
@@ -159,6 +179,8 @@ function PackageManagement() {
       <PackageModal
         visible={modalVisible}
         record={selectedRecord}
+        mode={modalMode}
+        replaceOptions={data.filter((item) => item.displayStatus === 'active')}
         onCancel={handleModalCancel}
         onOk={handleModalOk}
         loading={modalLoading}

@@ -10,36 +10,76 @@ import {
   Col,
   Select,
   Button,
+  DatePicker,
 } from 'antd';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { PACKAGE_TYPE_MAP, CHANNEL_OPTIONS } from '../data/packageMock';
+import dayjs from 'dayjs';
+import {
+  PACKAGE_TYPE_MAP,
+  PACKAGE_STATUS_MAP,
+  CHANNEL_OPTIONS,
+  SKU_OPTIONS,
+  VALIDITY_TYPE_MAP,
+} from '../data/packageMock';
 
 const TYPE_OPTIONS = Object.keys(PACKAGE_TYPE_MAP).map((key) => ({
   value: key,
   label: PACKAGE_TYPE_MAP[key].label,
 }));
 
-function formatDiscountTag(originalPrice, currentPrice) {
-  if (currentPrice === 0) return '免费';
-  if (!originalPrice || originalPrice <= 0) return '-';
-  const zhe = Math.floor((currentPrice / originalPrice) * 100) / 10;
+const VALIDITY_OPTIONS = Object.keys(VALIDITY_TYPE_MAP).map((key) => ({
+  value: key,
+  label: VALIDITY_TYPE_MAP[key].label,
+}));
+
+const SKU_SELECT_OPTIONS = SKU_OPTIONS.map((item) => ({
+  value: item.skuCode,
+  label: `${item.skuName}（${item.skuCode}）`,
+}));
+
+function formatDiscountTag(listPrice, actualPrice) {
+  if (actualPrice === 0) return '免费';
+  if (!listPrice || listPrice <= 0) return '-';
+  const zhe = Math.floor((actualPrice / listPrice) * 100) / 10;
   return `约 ${zhe.toFixed(1)} 折`;
 }
 
-function PackageModal({ visible, record, onCancel, onOk, loading }) {
+function PackageModal({ visible, record, mode = 'create', replaceOptions = [], onCancel, onOk, loading }) {
   const [form] = Form.useForm();
-  const isEdit = !!record;
+  const isEdit = mode === 'edit';
 
   const type = Form.useWatch('type', form);
-  const originalPrice = Form.useWatch('originalPrice', form);
-  const currentPrice = Form.useWatch('currentPrice', form);
+  const listPrice = Form.useWatch('listPrice', form);
+  const actualPrice = Form.useWatch('actualPrice', form);
+  const statusValue = Form.useWatch('status', form);
+  const shelfTimeValue = Form.useWatch('shelfTime', form);
+  const replacesPackageId = Form.useWatch('replacesPackageId', form);
 
   const isEnterprise = type === 'enterprise';
-  const isTopup = type === 'topup';
+
+  const computedStatus = useMemo(() => {
+    if (statusValue === 'inactive') return 'inactive';
+    if (shelfTimeValue && dayjs(shelfTimeValue).valueOf() > Date.now()) return 'pending';
+    return 'active';
+  }, [statusValue, shelfTimeValue]);
+
+  const statusConfig = PACKAGE_STATUS_MAP[computedStatus];
+
+  const replaceSelectOptions = useMemo(
+    () =>
+      replaceOptions
+        .filter((item) => item.id !== record?.id)
+        .filter((item) => !type || item.type === type)
+        .map((item) => ({
+          value: item.id,
+          label: `${PACKAGE_TYPE_MAP[item.type]?.label || item.type} / ${item.name}`,
+        })),
+    [replaceOptions, record, type]
+  );
 
   const discountTag = useMemo(
-    () => (isEnterprise ? '-' : formatDiscountTag(Number(originalPrice), Number(currentPrice))),
-    [isEnterprise, originalPrice, currentPrice]
+    () => (isEnterprise ? '-' : formatDiscountTag(Number(listPrice), Number(actualPrice))),
+    [isEnterprise, listPrice, actualPrice]
   );
 
   useEffect(() => {
@@ -49,35 +89,32 @@ function PackageModal({ visible, record, onCancel, onOk, loading }) {
           name: record.name,
           type: record.type,
           sku: record.sku,
-          validityDays: record.validityDays,
-          channels: record.channels || ['open_platform'],
+          validity: record.validity || { type: 'days', value: 30 },
+          channels: record.channels || ['own_channel'],
+          shelfTime: record.shelfTime ? dayjs(record.shelfTime) : dayjs(),
           status: record.status,
+          seriesKey: record.seriesKey,
+          replacesPackageId: record.replacesPackageId,
           benefits: record.benefits || [],
-          points: record.points,
-          concurrency: record.concurrency,
-          originalPrice: record.originalPrice,
-          currentPrice: record.currentPrice,
-          couponFirstOrder: record.couponFirstOrder,
-          couponMonthly: record.couponMonthly,
+          listPrice: record.listPrice,
+          actualPrice: record.actualPrice,
           basePrice: record.basePrice,
           minSeats: record.minSeats,
-          fullReductionRules: record.fullReductionRules || [{ threshold: 500, reduction: 100 }],
         });
       } else {
         form.resetFields();
         form.setFieldsValue({
           type: 'personal',
-          validityDays: 30,
-          points: 1000,
-          concurrency: 5,
-          originalPrice: 49,
-          currentPrice: 29,
-          couponFirstOrder: 0,
-          couponMonthly: 0,
+          validity: { type: 'natural_month' },
+          listPrice: 99,
+          actualPrice: 59,
           basePrice: 49,
           minSeats: 10,
-          channels: ['open_platform'],
+          channels: ['own_channel'],
+          shelfTime: dayjs(),
           status: 'active',
+          seriesKey: '',
+          replacesPackageId: '',
           benefits: [],
         });
       }
@@ -85,19 +122,32 @@ function PackageModal({ visible, record, onCancel, onOk, loading }) {
   }, [visible, record, form]);
 
   useEffect(() => {
-    if (isEnterprise && visible) {
-      const rules = form.getFieldValue('fullReductionRules');
-      if (!rules || rules.length === 0) {
-        form.setFieldsValue({
-          fullReductionRules: [{ threshold: 500, reduction: 210 }],
-        });
-      }
+    if (!replacesPackageId || !type) return;
+    const target = replaceOptions.find((item) => item.id === replacesPackageId);
+    if (target && target.type !== type) {
+      form.setFieldsValue({ replacesPackageId: '', seriesKey: '', sku: undefined });
     }
-  }, [isEnterprise, visible, form]);
+  }, [form, replaceOptions, replacesPackageId, type]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
-    await onOk(values);
+    const payload = {
+      ...values,
+      shelfTime: values.shelfTime ? values.shelfTime.toISOString() : dayjs().toISOString(),
+    };
+    await onOk(payload);
+  };
+
+  const handleReplaceChange = (value) => {
+    const target = replaceOptions.find((item) => item.id === value);
+    if (!target) {
+      form.setFieldsValue({ seriesKey: '' });
+      return;
+    }
+    form.setFieldsValue({
+      seriesKey: target.seriesKey,
+      sku: target.sku,
+    });
   };
 
   return (
@@ -122,178 +172,125 @@ function PackageModal({ visible, record, onCancel, onOk, loading }) {
           </Col>
           <Col span={12}>
             <Form.Item
-              name="sku"
-              label="SKU"
-              rules={[{ required: true, message: '请输入 SKU' }]}
+              name="type"
+              label="套餐类型"
+              rules={[{ required: true, message: '请选择套餐类型' }]}
             >
-              <Input placeholder="例如：basic" disabled={isEdit} />
+              <Select placeholder="请选择" options={TYPE_OPTIONS} disabled={isEdit} />
             </Form.Item>
           </Col>
         </Row>
 
         <Form.Item
-          name="type"
-          label="套餐类型"
-          rules={[{ required: true, message: '请选择套餐类型' }]}
+          name="replacesPackageId"
+          label="替换对象"
+          tooltip="待上架套餐到达上架时间后，会替换同一售卖位的当前套餐"
+          rules={[
+            {
+              validator: (_, value) => {
+                if (computedStatus === 'pending' && !value) {
+                  return Promise.reject(new Error('待上架套餐必须选择替换对象'));
+                }
+                return Promise.resolve();
+              },
+            },
+          ]}
         >
-          <Select placeholder="请选择" options={TYPE_OPTIONS} />
+          <Select
+            placeholder="请选择上架后要替换的套餐"
+            allowClear
+            options={replaceSelectOptions}
+            onChange={handleReplaceChange}
+            disabled={replaceSelectOptions.length === 0}
+          />
         </Form.Item>
 
+        <Form.Item name="seriesKey" hidden>
+          <Input />
+        </Form.Item>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="sku" label="关联 SKU">
+              <Select
+                placeholder="请选择业务支撑系统 SKU"
+                allowClear
+                options={SKU_SELECT_OPTIONS}
+                showSearch
+                optionFilterProp="label"
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="shelfTime"
+              label="上架时间"
+              rules={[{ required: true, message: '请选择上架时间' }]}
+            >
+              <DatePicker showTime style={{ width: '100%' }} format="YYYY-MM-DD HH:mm" />
+            </Form.Item>
+          </Col>
+        </Row>
+
         <Form.Item
-          name="validityDays"
-          label="有效期（天）"
-          rules={[{ required: true, message: '请输入有效期' }]}
-          tooltip="-1 表示长期有效"
+          name="validity"
+          label="有效期"
+          rules={[{ required: true, message: '请选择有效期' }]}
         >
-          <InputNumber min={-1} style={{ width: '100%' }} placeholder="例如：30，-1 表示长期有效" />
+          <ValidityInput />
         </Form.Item>
 
         {!isEnterprise && (
           <>
             <Row gutter={16}>
-              <Col span={isTopup ? 12 : 8}>
+              <Col span={8}>
                 <Form.Item
-                  name="points"
-                  label="积分额度"
-                  rules={[{ required: true, message: '请输入积分额度' }]}
-                >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="积分" />
-                </Form.Item>
-              </Col>
-              {!isTopup && (
-                <Col span={8}>
-                  <Form.Item
-                    name="concurrency"
-                    label="并发任务数"
-                    rules={[{ required: true, message: '请输入并发任务数' }]}
-                  >
-                    <InputNumber min={0} max={20} style={{ width: '100%' }} placeholder="0~20" />
-                  </Form.Item>
-                </Col>
-              )}
-              <Col span={isTopup ? 12 : 8}>
-                <Form.Item
-                  name="originalPrice"
-                  label="原价（元）"
-                  rules={[{ required: true, message: '请输入原价' }]}
+                  name="listPrice"
+                  label="刊例价（元）"
+                  rules={[{ required: true, message: '请输入刊例价' }]}
                 >
                   <InputNumber min={0} style={{ width: '100%' }} placeholder="元" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="actualPrice"
+                  label="实际售价（元）"
+                  rules={[{ required: true, message: '请输入实际售价' }]}
+                >
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="元" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item label="折扣标签" style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: '#f5222d' }}>{discountTag}</div>
                 </Form.Item>
               </Col>
             </Row>
-
-            <Row gutter={16}>
-              <Col span={isTopup ? 12 : 8}>
-                <Form.Item
-                  name="currentPrice"
-                  label="现价（元）"
-                  rules={[{ required: true, message: '请输入现价' }]}
-                >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="元" />
-                </Form.Item>
-              </Col>
-              <Col span={isTopup ? 12 : 8}>
-                <Form.Item
-                  name="couponFirstOrder"
-                  label="首单优惠券（元）"
-                  rules={[{ required: true, message: '请输入首单优惠券金额' }]}
-                >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="元" />
-                </Form.Item>
-              </Col>
-              {!isTopup && (
-                <Col span={8}>
-                  <Form.Item
-                    name="couponMonthly"
-                    label="包月优惠券（元）"
-                    rules={[{ required: true, message: '请输入包月优惠券金额' }]}
-                  >
-                    <InputNumber min={0} style={{ width: '100%' }} placeholder="元" />
-                  </Form.Item>
-                </Col>
-              )}
-            </Row>
-
-            <Form.Item label="折扣标签" style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: '#f5222d' }}>{discountTag}</div>
-            </Form.Item>
           </>
         )}
 
         {isEnterprise && (
-          <>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="basePrice"
-                  label="起价（元/人/月）"
-                  rules={[{ required: true, message: '请输入起价' }]}
-                >
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="例如：49" />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="minSeats"
-                  label="起订数量"
-                  rules={[{ required: true, message: '请输入起订数量' }]}
-                >
-                  <InputNumber min={1} style={{ width: '100%' }} placeholder="例如：10" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item label="满减优惠政策">
-              <Form.List
-                name="fullReductionRules"
-                rules={[
-                  {
-                    validator: async (_, value) => {
-                      if (!value || value.length === 0) {
-                        throw new Error('至少配置一条满减规则');
-                      }
-                    },
-                  },
-                ]}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="basePrice"
+                label="起价（元/人/月）"
+                rules={[{ required: true, message: '请输入起价' }]}
               >
-                {(fields, { add, remove }, { errors }) => (
-                  <>
-                    {fields.map(({ key, name, ...restField }) => (
-                      <Row key={key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
-                        <Col span={10}>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'threshold']}
-                            rules={[{ required: true, message: '请输入门槛' }]}
-                            noStyle
-                          >
-                            <InputNumber min={0} style={{ width: '100%' }} placeholder="满多少元" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={10}>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'reduction']}
-                            rules={[{ required: true, message: '请输入减免金额' }]}
-                            noStyle
-                          >
-                            <InputNumber min={0} style={{ width: '100%' }} placeholder="减多少元" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={4}>
-                          <MinusCircleOutlined onClick={() => remove(name)} style={{ color: '#999' }} />
-                        </Col>
-                      </Row>
-                    ))}
-                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                      添加满减规则
-                    </Button>
-                    <Form.ErrorList errors={errors} />
-                  </>
-                )}
-              </Form.List>
-            </Form.Item>
-          </>
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="例如：49" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="minSeats"
+                label="起订数量"
+                rules={[{ required: true, message: '请输入起订数量' }]}
+              >
+                <InputNumber min={1} style={{ width: '100%' }} placeholder="例如：10" />
+              </Form.Item>
+            </Col>
+          </Row>
         )}
 
         <Form.Item label="权益说明">
@@ -326,17 +323,74 @@ function PackageModal({ visible, record, onCancel, onOk, loading }) {
         </Form.Item>
 
         <Form.Item name="channels" label="适用渠道">
-          <Checkbox.Group options={CHANNEL_OPTIONS} />
+          <Checkbox.Group options={CHANNEL_OPTIONS} disabled />
         </Form.Item>
 
-        <Form.Item name="status" label="状态">
-          <Radio.Group>
-            <Radio value="active">上架</Radio>
-            <Radio value="inactive">下架</Radio>
-          </Radio.Group>
+        <Form.Item label="当前状态">
+          <div>
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '2px 8px',
+                borderRadius: 4,
+                backgroundColor: statusConfig?.color === 'success' ? '#f6ffed' : statusConfig?.color === 'warning' ? '#fffbe6' : '#f5f5f5',
+                color: statusConfig?.color === 'success' ? '#389e0d' : statusConfig?.color === 'warning' ? '#d48806' : '#666',
+                border: `1px solid ${statusConfig?.color === 'success' ? '#b7eb8f' : statusConfig?.color === 'warning' ? '#ffe58f' : '#d9d9d9'}`,
+                fontSize: 12,
+              }}
+            >
+              {statusConfig?.label || computedStatus}
+            </span>
+          </div>
+        </Form.Item>
+
+        <Form.Item name="status" label="人工状态" hidden>
+          <Input />
         </Form.Item>
       </Form>
     </Modal>
+  );
+}
+
+function ValidityInput({ value, onChange }) {
+  const type = value?.type || 'days';
+  const innerValue = value?.value;
+
+  const handleTypeChange = (e) => {
+    const nextType = e.target.value;
+    onChange?.({
+      type: nextType,
+      ...(nextType === 'days' ? { value: innerValue || 30 } : {}),
+    });
+  };
+
+  const handleValueChange = (v) => {
+    onChange?.({ type, value: v });
+  };
+
+  return (
+    <Row gutter={16} align="middle">
+      <Col>
+        <Radio.Group value={type} onChange={handleTypeChange}>
+          {VALIDITY_OPTIONS.map((opt) => (
+            <Radio key={opt.value} value={opt.value}>
+              {opt.label}
+            </Radio>
+          ))}
+        </Radio.Group>
+      </Col>
+      {type === 'days' && (
+        <Col>
+          <InputNumber
+            min={1}
+            value={innerValue}
+            onChange={handleValueChange}
+            placeholder="天数"
+            style={{ width: 120 }}
+          />
+        </Col>
+      )}
+    </Row>
   );
 }
 

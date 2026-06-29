@@ -1,15 +1,10 @@
 import React from 'react';
 import { Table, Tag, Button, Space, Popconfirm } from 'antd';
 import { PACKAGE_TYPE_MAP, PACKAGE_STATUS_MAP } from '../data/packageMock';
+import dayjs from 'dayjs';
 
-function PackageTable({ data, loading, onEdit, onToggle, onDelete }) {
+function PackageTable({ data, loading, onEdit, onCopy, onToggle, onDelete }) {
   const columns = [
-    {
-      title: '套餐 ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 100,
-    },
     {
       title: '套餐名称',
       dataIndex: 'name',
@@ -20,7 +15,8 @@ function PackageTable({ data, loading, onEdit, onToggle, onDelete }) {
       title: 'SKU',
       dataIndex: 'sku',
       key: 'sku',
-      width: 120,
+      width: 160,
+      render: (sku, record) => (record.skuName ? `${record.skuName}（${sku}）` : sku),
     },
     {
       title: '类型',
@@ -36,47 +32,53 @@ function PackageTable({ data, loading, onEdit, onToggle, onDelete }) {
       title: '套餐内容',
       dataIndex: 'benefitsText',
       key: 'benefitsText',
-      width: 300,
+      width: 200,
       ellipsis: true,
     },
     {
       title: '有效期',
       dataIndex: 'validityText',
       key: 'validityText',
-      width: 100,
+      width: 110,
     },
     {
-      title: '原价 / 起价',
+      title: '刊例价',
       dataIndex: 'priceInfo',
       key: 'priceInfo',
-      width: 120,
+      width: 110,
     },
     {
-      title: '现价 / 售价',
+      title: '实际售价',
       dataIndex: 'priceText',
       key: 'priceText',
-      width: 120,
+      width: 110,
     },
     {
-      title: '优惠政策',
-      dataIndex: 'promotionText',
-      key: 'promotionText',
-      width: 260,
-      ellipsis: true,
+      title: '折扣',
+      dataIndex: 'discountTag',
+      key: 'discountTag',
+      width: 110,
     },
     {
-      title: '适用渠道',
+      title: '渠道',
       dataIndex: 'channelText',
       key: 'channelText',
-      width: 140,
+      width: 110,
+    },
+    {
+      title: '上架时间',
+      dataIndex: 'shelfTime',
+      key: 'shelfTime',
+      width: 150,
+      render: (shelfTime) => (shelfTime ? dayjs(shelfTime).format('YYYY-MM-DD HH:mm') : '-'),
     },
     {
       title: '状态',
-      dataIndex: 'status',
-      key: 'status',
+      dataIndex: 'displayStatus',
+      key: 'displayStatus',
       width: 100,
-      render: (status) => {
-        const config = PACKAGE_STATUS_MAP[status] || { label: status, color: 'default' };
+      render: (displayStatus) => {
+        const config = PACKAGE_STATUS_MAP[displayStatus] || { label: displayStatus, color: 'default' };
         return <Tag color={config.color}>{config.label}</Tag>;
       },
     },
@@ -87,12 +89,21 @@ function PackageTable({ data, loading, onEdit, onToggle, onDelete }) {
       width: 180,
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" onClick={() => onEdit(record)}>
-            编辑
-          </Button>
-          <Button type="link" size="small" onClick={() => onToggle(record)}>
-            {record.status === 'active' ? '下架' : '上架'}
-          </Button>
+          {record.displayStatus === 'pending' && (
+            <Button type="link" size="small" onClick={() => onEdit(record)}>
+              编辑
+            </Button>
+          )}
+          {['active', 'pending'].includes(record.displayStatus) && (
+            <Button type="link" size="small" onClick={() => onToggle(record)}>
+              {record.displayStatus === 'pending' ? '取消上架' : '下架'}
+            </Button>
+          )}
+          {['inactive', 'replaced'].includes(record.displayStatus) && (
+            <Button type="link" size="small" onClick={() => onCopy(record)}>
+              复制
+            </Button>
+          )}
           <Popconfirm
             title="确认删除？"
             description="删除后不可恢复"
@@ -116,7 +127,7 @@ function PackageTable({ data, loading, onEdit, onToggle, onDelete }) {
       dataSource={data}
       loading={loading}
       pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-      scroll={{ x: 1500 }}
+      scroll={{ x: 1300 }}
     />
   );
 }
